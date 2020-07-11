@@ -1,0 +1,136 @@
+---
+title: "Disaster Relief Project Part 1"
+author: "Yihnew Eshetu"
+date: "2/26/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(ISLR)
+library(regclass)
+library(caret)
+library(MASS)
+library(class)
+library(pROC)
+library(ROCR)
+library(nnet)
+```
+
+Read in Haiti csv file
+```{r}
+haiti.image = read.csv("HaitiPixels.csv")
+attach(haiti.image)
+```
+
+```{r}
+set.seed(10)
+data.size = nrow(haiti.image)
+split.size = data.size/10
+permutation = sample(data.size)
+```
+
+```{r}
+knn.function = function(kvalue) {
+  knn.acc = 0
+  for (i in 1:10) {
+    haiti.image.sample = permutation[((i - 1) * split.size + 1) : (i * split.size)]
+    
+    haiti.image.test = as.data.frame(haiti.image[haiti.image.sample,])
+    haiti.image.train = as.data.frame(haiti.image[-haiti.image.sample,])
+    
+    knn.pred = knn(haiti.image.train[-1], haiti.image.test[-1], cl =  haiti.image.train[,1], kvalue)
+    knn.acc = knn.acc + mean(knn.pred == haiti.image.test[,1])
+  }
+  return((knn.acc/10)*100)
+}
+
+k.value.acc = c('1' = 0, '2' = 0, '3' = 0, 
+                  '4' = 0, '5' = 0, '6' = 0, 
+                  '7' = 0, '8' = 0, '9' = 0, 
+                  '10' = 0, '11' = 0, '12' = 0,
+                  '13' = 0, '13' = 0, '15' = 0)
+
+start_time <- Sys.time()
+for (k in 1:15){
+  k.value.acc[k] = knn.function(k)
+}
+end_time <- Sys.time()
+end_time - start_time
+
+k.value.acc[which.max(k.value.acc)]
+
+plot(seq(1,15), k.value.acc,type = 'b', xlab = 'K Value', ylab = 'Accuracy', main = paste0('K = ', which.max(k.value.acc)) )
+points(which.max(k.value.acc), k.value.acc[which.max(k.value.acc)], col ='red', pch = 20)
+```
+
+```{r}
+lda.function = function() {
+  lda.acc = 0
+  for (i in 1:10) {
+    haiti.image.sample = permutation[((i - 1) * split.size + 1) : (i * split.size)]
+    
+    haiti.image.test = as.data.frame(haiti.image[haiti.image.sample,])
+    haiti.image.train = as.data.frame(haiti.image[-haiti.image.sample,])
+    
+    lda.fit = lda(Class ~ Red + Green + Blue, data = haiti.image.train)
+    lda.pred = predict(lda.fit, haiti.image.test)
+    lda.acc = lda.acc + mean(lda.pred$class == haiti.image.test[,1])
+  }
+  return((lda.acc/10)*100)
+}
+start_time <- Sys.time()
+lda.function()
+end_time <- Sys.time()
+end_time - start_time
+```
+
+```{r}
+qda.function = function() {
+  qda.acc = 0
+  for (i in 1:10) {
+    haiti.image.sample = permutation[((i - 1) * split.size + 1) : (i * split.size)]
+    
+    haiti.image.test = as.data.frame(haiti.image[haiti.image.sample,])
+    haiti.image.train = as.data.frame(haiti.image[-haiti.image.sample,])
+    
+    qda.fit = qda(Class ~ Red + Green + Blue, data = haiti.image.train)
+    qda.pred = predict(qda.fit, haiti.image.test)
+    qda.acc = qda.acc + mean(qda.pred$class == haiti.image.test[,1])
+  }
+  return((qda.acc/10)*100)
+}
+start_time <- Sys.time()
+qda.function()
+end_time <- Sys.time()
+end_time - start_time
+```
+
+```{r, message=FALSE}
+log.function = function() {
+  log.acc = 0
+  for (i in 1:10) {
+    haiti.image.sample = permutation[((i - 1) * split.size + 1) : (i * split.size)]
+    
+    haiti.image$Class = factor(haiti.image$Class)
+    levels(haiti.image$Class)
+    haiti.image.test = haiti.image[haiti.image.sample,]
+    haiti.image.train = haiti.image[-haiti.image.sample,]
+    
+    log.fit = multinom(Class ~ Red + Green + Blue, data = haiti.image.train, family = binomial)
+    log.pred = predict(log.fit, type = 'class', haiti.image.test)
+    log.acc = log.acc + mean(log.pred == haiti.image.test[,1])
+  }
+  return((log.acc/10)*100)
+}
+start_time <- Sys.time()
+log.function()
+end_time <- Sys.time()
+end_time - start_time
+```
+
+
+
